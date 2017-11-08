@@ -30,6 +30,8 @@ public class PlayerController : MonoBehaviour {
     public float groundLine = -3.5f;
 
     void Start () {
+        InputManager.inputDelegate_Sweep += OnSweep;
+
         playerEnergy = playerEnergyMax;
         playerState = PlayerState.InAirNormal;
         hoverTimer = 0;
@@ -37,11 +39,12 @@ public class PlayerController : MonoBehaviour {
     }
 	
 	
-	void Update () {
-        
-
+	void OnDisable () {
+        InputManager.inputDelegate_Sweep -= OnSweep;
 
     }
+
+
     private void FixedUpdate()
     {
         

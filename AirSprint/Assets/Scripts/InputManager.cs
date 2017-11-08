@@ -2,16 +2,34 @@
 using System.Collections;
 using UnityEngine.Events;
 
-[System.Serializable]
-public class InputSweepEvent : UnityEvent<Vector2, float>
-{
-}
+//[System.Serializable]
+//public class InputSweepEvent : UnityEvent<Vector2, float>
+//{
+//}
 
 public class InputManager : MonoBehaviour {
 
+    //delegates
+    /// <summary>
+    /// delegate of sweep action
+    /// </summary>
+    /// <param name="dir"> direction of sweep</param>
+    /// <param name="mag"> length of sweep </param>
+    public delegate void InputDelegateSweep(Vector2 dir, float mag);
+    public static event InputDelegateSweep inputDelegate_Sweep;
+    /// <summary>
+    /// delegate of hold action - press ... don't release
+    /// </summary>
+    public delegate void InputDelegateHold();
+    public static event InputDelegateHold inputDelegate_StartHold;
+    public static event InputDelegateHold inputDelegate_EndHold;
+
+    
 
 
-    public InputSweepEvent inputSweepEvent;
+
+
+   // public InputSweepEvent inputSweepEvent;
 
     Vector2 lastClickDown;
     Vector2 lastClickUp;
@@ -22,8 +40,8 @@ public class InputManager : MonoBehaviour {
 	// Use this for initialization
 	void Start () {
 
-        if (inputSweepEvent == null)
-            inputSweepEvent = new InputSweepEvent();
+       // if (inputSweepEvent == null)
+       //     inputSweepEvent = new InputSweepEvent();
         
     }
 	
@@ -54,7 +72,7 @@ public class InputManager : MonoBehaviour {
         if (mag > 80 && period < 0.4f)
         {
             //Debug.Log("Sweep Action");
-            inputSweepEvent.Invoke(vec,mag);
+            inputDelegate_Sweep(vec, mag);
         } 
     }
 }
