@@ -31,7 +31,8 @@ public class PlayerController : MonoBehaviour {
 
     void Start () {
         InputManager.inputDelegate_Sweep += OnSweep;
-
+        InputManager.inputDelegate_StartHold+= OnHoldStart;
+        InputManager.inputDelegate_EndHold += OnHoldEnd;
         playerEnergy = playerEnergyMax;
         playerState = PlayerState.InAirNormal;
         hoverTimer = 0;
@@ -41,7 +42,8 @@ public class PlayerController : MonoBehaviour {
 	
 	void OnDisable () {
         InputManager.inputDelegate_Sweep -= OnSweep;
-
+        InputManager.inputDelegate_StartHold -= OnHoldStart;
+        InputManager.inputDelegate_EndHold -= OnHoldEnd;
     }
 
 
@@ -116,11 +118,20 @@ public class PlayerController : MonoBehaviour {
     /// </summary>
     /// <param name="vec"> normalize direction of the sweep action</param>
     /// <param name="mag"> length of sweep action</param>
-    public void OnSweep(Vector2 vec, float mag)
+    void OnSweep(Vector2 vec)
     {
-        //Debug.Log("On Sweep");
+        Debug.Log("On Sweep");
         if(ActivateSkill())
             Dash(vec, 3.0f);
+    }
+
+    void OnHoldStart()
+    {
+        Debug.Log("hold start");
+    }
+    void OnHoldEnd()
+    {
+        Debug.Log("hold End");
     }
 
     /// <summary>
