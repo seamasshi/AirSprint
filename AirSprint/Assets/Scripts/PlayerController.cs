@@ -4,12 +4,14 @@ using System.Collections;
 public enum PlayerState {
     OnGround,
     InAirNormal,
-    Hover
+    Hover,
+    KnockedDown
+     
 };
 
 public class PlayerController : MonoBehaviour {
 
-
+    public float playerHitFactor = 3;
 
     public PlayerState playerState;
 
@@ -17,15 +19,28 @@ public class PlayerController : MonoBehaviour {
     public float playerEnergy;
     public float playerEnergyRecoverRate = 5.0f;
     public float playerEnergyMax = 100;
+
+
+    public float playerHealth;
+    public float playerHealthRecoverRate = 5.0f;
+    public float playerHealthMax = 5000;
+
+    public float playerMoveSpeed = 3f;
      
     public GameObject dashEffectPrefab;
     public GameObject dashEffect;
 
 
+    public GameObject bulletPrefab;
+    public GameObject focusedEnemy;
+
     public float hoverTimer;
     public float hoverTime = 0.2f;
     public float globalCooldownTimer;
     public float globalCooldownTime = 0.25f;
+
+    public float bulletCooldownTimer;
+    public float bulletCooldownTime = 0.4f;
 
     public float groundLine = -3.5f;
 
@@ -33,7 +48,10 @@ public class PlayerController : MonoBehaviour {
         InputManager.inputDelegate_Sweep += OnSweep;
         InputManager.inputDelegate_StartHold+= OnHoldStart;
         InputManager.inputDelegate_EndHold += OnHoldEnd;
+        InputManager.inputDelegate_Click += OnClick;
+        InputManager.inputDelegate_Drag += OnDrag;
         playerEnergy = playerEnergyMax;
+        playerHealth = playerHealthMax;
         playerState = PlayerState.InAirNormal;
         hoverTimer = 0;
         globalCooldownTimer = 0;
@@ -44,6 +62,8 @@ public class PlayerController : MonoBehaviour {
         InputManager.inputDelegate_Sweep -= OnSweep;
         InputManager.inputDelegate_StartHold -= OnHoldStart;
         InputManager.inputDelegate_EndHold -= OnHoldEnd;
+        InputManager.inputDelegate_Click -= OnClick;
+        InputManager.inputDelegate_Drag -= OnDrag;
     }
 
 
@@ -51,9 +71,11 @@ public class PlayerController : MonoBehaviour {
     {
         
         globalCooldownTimer -= Time.fixedDeltaTime;
+        bulletCooldownTimer -= Time.fixedDeltaTime;
 
-        
-
+        //damp on X axis
+        float x = GetComponent<Rigidbody2D>().velocity.x;
+        GetComponent<Rigidbody2D>().velocity = new Vector2(x * 0.95f, GetComponent<Rigidbody2D>().velocity.y);
 
         CheckAboveGround();
 
@@ -77,6 +99,8 @@ public class PlayerController : MonoBehaviour {
                 break;
             case PlayerState.OnGround:
                 GetComponent<Rigidbody2D>().velocity = new Vector2(0, 0);
+                break;
+            case PlayerState.KnockedDown:
                 break;
         }
 
@@ -120,26 +144,53 @@ public class PlayerController : MonoBehaviour {
     /// <param name="mag"> length of sweep action</param>
     void OnSweep(Vector2 vec)
     {
-        Debug.Log("On Sweep");
+        //Debug.Log("On Sweep");
         if(ActivateSkill())
             Dash(vec, 3.0f);
     }
 
     void OnHoldStart()
     {
-        Debug.Log("hold start");
+        //Debug.Log("hold start");
     }
     void OnHoldEnd()
     {
-        Debug.Log("hold End");
+        //Debug.Log("hold End");
+    }
+    void OnClick(Vector2 clickPosition)
+    {
+        //Debug.Log("Click");
+        if (playerState == PlayerState.OnGround)
+        {
+            if (bulletCooldownTimer < 0)
+            {
+                //make character bullet shooting into colddown 
+                bulletCooldownTimer = bulletCooldownTime;
+                GameObject bullet = GameObject.Instantiate(bulletPrefab);
+                bullet.transform.position = new Vector3(transform.position.x, transform.position.y, bullet.transform.position.z);
+                bullet.GetComponent<BulletController>().SetVelocity(((Vector2)(focusedEnemy.transform.position - transform.position)).normalized * 4.0f);
+            }
+        }
     }
 
+    void OnDrag(Vector2 dir, float mag)
+    {
+        Debug.Log("Drag"+dir.ToString()+mag.ToString());
+        if (playerState == PlayerState.OnGround)
+        {
+            Vector3 movingDir = new Vector3(dir.x, 0, 0);
+            movingDir.Normalize();
+            transform.position += movingDir * Time.deltaTime * playerMoveSpeed;
+        }
+    }
     /// <summary>
     /// actions for every skill casted
     /// </summary>
     /// <returns> if the character colddown & energy is ready for another skill</returns>
     public bool ActivateSkill()
     {
+        if (playerState == PlayerState.KnockedDown)
+            return false;
         if (playerEnergy >= 30)
         {
             playerEnergy -= 30;
@@ -204,7 +255,27 @@ public class PlayerController : MonoBehaviour {
         if (playerEnergy > playerEnergyMax)
             playerEnergy = playerEnergyMax;
     }
-    
+
+
+    public void Hit(Vector2 dir, float power)
+    {
+
+        //-hp
+        playerHealth -= power;
+        playerState= PlayerState.KnockedDown;
+        if (playerHealth < 0)
+        {
+            playerHealth = playerHealthMax;
+        }
+        //first stop the character from falling
+        GetComponent<Rigidbody2D>().velocity = new Vector2(0, 0);
+        //add a force to enemy when hit - according to the direction of this hit
+        GetComponent<Rigidbody2D>().AddForce(dir * power *playerHitFactor);
+        
+        GetComponent<Rigidbody2D>().AddForce(Vector2.up * power * playerHitFactor);
+        
+    }
+
     void CreateDashEffect(Vector2 pos)
     {
 
@@ -214,6 +285,12 @@ public class PlayerController : MonoBehaviour {
     public float getPlayerEnergyPercentage()
     {
         return playerEnergy / playerEnergyMax;
+
+    }
+
+    public float getPlayerHealthPercentage()
+    {
+        return playerHealth / playerHealthMax;
 
     }
 }

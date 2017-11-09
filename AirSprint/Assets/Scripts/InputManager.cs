@@ -18,8 +18,19 @@ public class InputManager : MonoBehaviour {
     public delegate void InputDelegateHold();
     public static event InputDelegateHold inputDelegate_StartHold;
     public static event InputDelegateHold inputDelegate_EndHold;
-
-    
+    /// <summary>
+    /// delegate of click action
+    /// </summary>
+    /// <param name="pos">click position    </param>
+    public delegate void InputDelegateClick(Vector2 pos);
+    public static event InputDelegateClick inputDelegate_Click;
+    /// <summary>
+    /// delegate of drag action
+    /// </summary>
+    /// <param name="dir">direction from start position toward current position</param>
+    /// <param name="mag">distance from start position to current position</param>
+    public delegate void InputDelegateDrag(Vector2 dir, float mag);
+    public static event InputDelegateDrag inputDelegate_Drag;
 
 
 
@@ -59,27 +70,36 @@ public class InputManager : MonoBehaviour {
             lastClickUpTime = Time.time;
             clickHold = false;
             CheckHoldEnd();
-            CheckSweep();
+
+            CheckSweepOrClick();
         }
 
         if (clickHold)
         {
             lastHoldPosition = Input.mousePosition;
             lastHoldTime = Time.time;
+            CheckDrag();
         }
         CheckHoldStart();
     }
 
     
-    void CheckSweep()
+    void CheckSweepOrClick()
     {
+        Vector2 wholeVector = lastClickUpPosition - lastClickDownPosition;
         float period = lastClickUpTime - lastHoldTime;
         float speed = (lastClickUpPosition - lastHoldPosition).magnitude / period;
-        if (speed > 600.0f)
+        if (speed > 600.0f && wholeVector.magnitude > 200)
         {
             Vector2 vec = lastClickUpPosition - lastHoldPosition;
             vec.Normalize();
-            inputDelegate_Sweep(vec);            
+            inputDelegate_Sweep(vec);
+        }
+        else
+        {
+            if (lastClickUpTime-lastClickDownTime < 0.3f)
+                inputDelegate_Click(lastClickUpPosition);
+
         }
     }
 
@@ -106,5 +126,18 @@ public class InputManager : MonoBehaviour {
             isHoldDelegateBroadcasted = false;
             inputDelegate_EndHold();
         }        
+    }
+
+    void CheckDrag()
+    {
+        Vector2 dir = lastHoldPosition - lastClickDownPosition;
+        float mag = (lastHoldPosition - lastClickDownPosition).magnitude;
+        dir.Normalize();
+        if (mag > 30 && (lastHoldTime - lastClickDownTime > 0.12f))
+        {
+            inputDelegate_Drag(dir, mag);
+
+        }
+
     }
 }
